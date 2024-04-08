@@ -9,12 +9,12 @@
 
 using namespace std;
 
-inline float distance(const Vector2& a, const Vector2& b)
+inline float distance(const OLVector2& a, const OLVector2& b)
 {
     return ((a.x - b.x) * (a.x - b.x)) + ((a.y - b.y) * (a.y - b.y));
 }
 
-inline bool operator<(const Vector2& a, const Vector2& b)
+inline bool operator<(const OLVector2& a, const OLVector2& b)
 {
     if (a.x < b.x)
         return true;
@@ -45,17 +45,17 @@ int main()
     {
         cout << "generating points" << endl;
         srand(0);
-        vector<Vector2> points;
-        points.push_back(Vector2{ 0,0 });
+        vector<OLVector2> points;
+        points.push_back(OLVector2{ 0,0 });
         for (int p = 1; p < num_points; p++)
         {
-            Vector2 best_candidate;
+            OLVector2 best_candidate;
             float best_candidate_distance = -1;
             for (int c = 0; c < NUM_CANDIDATES; c++)
             {
-                Vector2 candidate = Vector2{ randf(), randf() };
+                OLVector2 candidate = OLVector2{ randf(), randf() };
                 float closest_existing_distance = 2.0f;
-                for (Vector2 t : points)
+                for (OLVector2 t : points)
                 {
                     float dif = t.x - candidate.x;
                     float x_dif = dif * dif;
@@ -91,9 +91,9 @@ int main()
             {
                 //cout << f_x << " : " << x << endl;
                 float value = 0.0f;
-                for (Vector2 p : points)
+                for (OLVector2 p : points)
                 {
-                    value = max(1.0f - (distance(Vector2{ f_x, f_y }, p) * 50.0f), value);
+                    value = max(1.0f - (distance(OLVector2{ f_x, f_y }, p) * 50.0f), value);
                 }
                 unsigned char val = (unsigned char)(min(value, 1.0f) * 255);
                 DrawPixel(x, y, Color{ val, val, val, 255 });
@@ -102,7 +102,7 @@ int main()
             f_y += 2.0f / GetScreenHeight();
         }
 
-        for (Vector2 p : points)
+        for (OLVector2 p : points)
         {
             DrawPixel((p.x + 1.0f) * (GetScreenWidth() / 2.0f), (p.y + 1.0f) * (GetScreenHeight() / 2.0f), WHITE);
         }
