@@ -1,1 +1,3 @@
-﻿  virtual-graphite.vcxproj -> C:\Users\Jacob Costen\source\repos\virtual-graphite\x64\Debug\virtual-graphite.exe
+﻿  virtual-graphite.cpp
+C:\Users\Jacob Costen\source\repos\virtual-graphite\virtual-graphite.cpp(70,33): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  virtual-graphite.vcxproj -> C:\Users\Jacob Costen\source\repos\virtual-graphite\x64\Debug\virtual-graphite.exe
