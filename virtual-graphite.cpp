@@ -4,7 +4,7 @@
 #include <iostream>
 #include "raylib.h"
 
-#include <set>
+#include <vector>
 #include <iostream>
 
 using namespace std;
@@ -43,9 +43,10 @@ int main()
     int num_points = 100;
     while (!WindowShouldClose())
     {
+        cout << "generating points" << endl;
         srand(0);
-        set<Vector2> points;
-        points.insert(Vector2{ 0,0 });
+        vector<Vector2> points;
+        points.push_back(Vector2{ 0,0 });
         for (int p = 1; p < num_points; p++)
         {
             Vector2 best_candidate;
@@ -75,13 +76,39 @@ int main()
                     best_candidate_distance = closest_existing_distance;
                 }
             }
-            points.insert(best_candidate);
+            points.push_back(best_candidate);
         }
 
         BeginDrawing();
         ClearBackground(BLACK);
-        for (Vector2 p : points) DrawCircle(((p.x + 1.0f) / 2.0f) * 1024, ((p.y + 1.0f) / 2.0f) * 1024, 1.0f, WHITE);
+        float f_x = -1.0f;
+        float f_y = -1.0f;
+        cout << "drawing!" << endl;
+        for (int y = 0; y < GetScreenHeight(); y++)
+        {
+            f_x = -1.0f;
+            for (int x = 0; x < GetScreenWidth(); x++)
+            {
+                //cout << f_x << " : " << x << endl;
+                float value = 0.0f;
+                for (Vector2 p : points)
+                {
+                    value = max(1.0f - (distance(Vector2{ f_x, f_y }, p) * 50.0f), value);
+                }
+                unsigned char val = (unsigned char)(min(value, 1.0f) * 255);
+                DrawPixel(x, y, Color{ val, val, val, 255 });
+                f_x += 2.0f / GetScreenWidth();
+            }
+            f_y += 2.0f / GetScreenHeight();
+        }
+
+        for (Vector2 p : points)
+        {
+            DrawPixel((p.x + 1.0f) * (GetScreenWidth() / 2.0f), (p.y + 1.0f) * (GetScreenHeight() / 2.0f), WHITE);
+        }
         EndDrawing();
+
+        cout << "done" << endl;
 
         num_points += num_points/2;
     }
