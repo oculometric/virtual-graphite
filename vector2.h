@@ -47,5 +47,5 @@ template<typename T>
 inline std::ostream& operator<<(std::ostream& stream, const OLVector2<T>& v) { return stream << '(' << v.x << ", " << v.y << ')'; }
 
 typedef OLVector2<float> OLVector2f;
-typedef OLVector2<int32_t> OLVector2fi;
+typedef OLVector2<int32_t> OLVector2i;
 typedef OLVector2<uint32_t> OLVector2u;

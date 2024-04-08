@@ -4,125 +4,48 @@
 #include <iostream>
 #include "raylib.h"
 
-#include <vector>
-#include <iostream>
+#include "camera.h"
+#include "vector2.h"
+#include "mesh.h"
 
 using namespace std;
 
-inline float distance(const OLVector2& a, const OLVector2& b)
-{
-    return ((a.x - b.x) * (a.x - b.x)) + ((a.y - b.y) * (a.y - b.y));
-}
-
-inline bool operator<(const OLVector2& a, const OLVector2& b)
-{
-    if (a.x < b.x)
-        return true;
-    else if (a.x > b.x)
-        return false;
-    else
-    {
-        if (a.y < b.y) return true;
-        else return false;
-    }
-}
-
-#define NUM_CANDIDATES 5
-const float RAND_DIVISOR = 1.0f / RAND_MAX;
-
-inline float randf()
-{
-    return ((float)(rand() << 1) * RAND_DIVISOR) - 1.0f;
-}
-
 int main()
 {
-    InitWindow(1024, 1024, "vg");
-    SetTargetFPS(60);
+    InitWindow(256, 256, "oculib");
+    SetTargetFPS(4);
+
+    OLMatrix4f world_to_camera =
+        ~(OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f)
+        *
+            ~OLObject::objectMatrix(OLVector3f{ 0,0,0 }, -OLVector3f OL_UP, OL_BACK, -OLVector3f OL_RIGHT, OLVector3f{ 1,1,1 }));
     
-    int num_points = 100;
+    OLMesh demo_mesh("suzanne.obj");
+    
     while (!WindowShouldClose())
     {
-        cout << "generating points" << endl;
-        srand(0);
-        vector<OLVector2> points;
-        points.push_back(OLVector2{ 0,0 });
-        for (int p = 1; p < num_points; p++)
-        {
-            OLVector2 best_candidate;
-            float best_candidate_distance = -1;
-            for (int c = 0; c < NUM_CANDIDATES; c++)
-            {
-                OLVector2 candidate = OLVector2{ randf(), randf() };
-                float closest_existing_distance = 2.0f;
-                for (OLVector2 t : points)
-                {
-                    float dif = t.x - candidate.x;
-                    float x_dif = dif * dif;
-                    if (x_dif > closest_existing_distance) continue;
-                    dif = t.y - candidate.y;
-                    float y_dif = dif * dif;
-                    if (y_dif > closest_existing_distance) continue;
-
-                    float dist = x_dif + y_dif;
-                    if (dist < closest_existing_distance)
-                    {
-                        closest_existing_distance = dist;
-                    }
-                }
-                if (closest_existing_distance > best_candidate_distance)
-                {
-                    best_candidate = candidate;
-                    best_candidate_distance = closest_existing_distance;
-                }
-            }
-            points.push_back(best_candidate);
-        }
-
         BeginDrawing();
-        ClearBackground(BLACK);
-        float f_x = -1.0f;
-        float f_y = -1.0f;
-        cout << "drawing!" << endl;
+
+        OLVector4f sceen_space = { -1.0f, 1.0f, 1.0f, 1.0f };
         for (int y = 0; y < GetScreenHeight(); y++)
         {
-            f_x = -1.0f;
+            sceen_space.x = -1.0f;
             for (int x = 0; x < GetScreenWidth(); x++)
             {
-                //cout << f_x << " : " << x << endl;
-                float value = 0.0f;
-                for (OLVector2 p : points)
-                {
-                    value = max(1.0f - (distance(OLVector2{ f_x, f_y }, p) * 50.0f), value);
-                }
-                unsigned char val = (unsigned char)(min(value, 1.0f) * 255);
-                DrawPixel(x, y, Color{ val, val, val, 255 });
-                f_x += 2.0f / GetScreenWidth();
+                OLVector4f world_space = world_to_camera * sceen_space;
+                OLVector3f direction = norm(OLVector3f{ world_space.x, world_space.y, world_space.z });
+                OLPointData data = demo_mesh.raycast(OLVector3f{ -2,0,0 }, direction, true, 0.01f, 10.0f);
+                float remapped_depth = max(min((data.depth - 0.01f) / (10.0f - 0.01f), 1.0f), 0.0f);
+                DrawPixel(x, y, Color{ (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), 255 });
+                sceen_space.x += 2.0f / GetScreenWidth();
             }
-            f_y += 2.0f / GetScreenHeight();
+            sceen_space.y -= 2.0f / GetScreenHeight();
         }
 
-        for (OLVector2 p : points)
-        {
-            DrawPixel((p.x + 1.0f) * (GetScreenWidth() / 2.0f), (p.y + 1.0f) * (GetScreenHeight() / 2.0f), WHITE);
-        }
         EndDrawing();
 
-        cout << "done" << endl;
-
-        num_points += num_points/2;
+        cout << "frame rendered" << endl;
     }
 
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

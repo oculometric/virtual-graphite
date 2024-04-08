@@ -227,3 +227,5 @@ inline OLMatrix4<T> cofact(const OLMatrix4<T>& a) { return OLMatrix4<T>{ minor(a
     * **/
 template <typename T>
 inline OLMatrix4<T> adj(const OLMatrix4<T>& a) { return -cofact(a); }
+
+typedef OLMatrix4<float> OLMatrix4f;

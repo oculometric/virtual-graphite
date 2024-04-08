@@ -14,23 +14,32 @@ struct OLPointData
 class OLMesh
 {
 private:
-	size_t face_corners;
+	size_t* face_corners;
 	OLVector3f* vertices;
 	OLVector2f* texture_coordinates;
 	OLVector3f* corner_normals;
 
 	OLVector3f* face_normals;
-	OLVector3f* ab_vectors;
-	OLVector3f* ac_vectors;
-	float* inv_determinants;
+	OLVector3f* edge_vectors;
+	float* edge_dots;
+	float* inv_denominators;
 
 	size_t num_face_corners;
 	size_t num_vertices;
+
+	void updateSecondaryData();
+	void deallocateBuffers();
 public:
 	OLMesh(const char* filename);
 
-	OLPointData& raycast(const OLVector3f& origin, const OLVector3f& direction);
+	OLMesh(const OLMesh& other) = delete;
+	void operator=(const OLMesh& other) = delete;
+	OLMesh(const OLMesh&& other) = delete;
+	void operator=(const OLMesh&& other) = delete;
+
+	OLPointData& raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip);
 	OLPointData& closestPoint(const OLVector3f& point);
+	bool readFromFile(const char* filename);
 
 	~OLMesh();
 };

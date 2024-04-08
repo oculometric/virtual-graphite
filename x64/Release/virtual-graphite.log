@@ -1,2 +1,7 @@
 ﻿  virtual-graphite.cpp
-C:\Users\Jacob Costen\source\repos\virtual-graphite\virtual-graphite.cpp(5,10): fatal  error C1083: Cannot open include file: 'raylib.h': No such file or directory
+  Generating code
+  1 of 227 functions ( 0.4%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  virtual-graphite.vcxproj -> C:\Users\Jacob Costen\source\repos\virtual-graphite\x64\Release\virtual-graphite.exe

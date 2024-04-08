@@ -3,6 +3,12 @@
 #include <math.h>
 #include <iostream>
 
+#define OL_RIGHT { 1,0,0 }
+#define OL_UP { 0,1,0 }
+#define OL_BACK { 0,0,1 }
+
+template <typename T> struct OLVector3;
+
 template<typename T>
 struct OLVector3
 {
@@ -36,7 +42,7 @@ inline bool operator==(const OLVector3<T>& a, const OLVector3<T>& b) { return (a
 template<typename T>
 inline T operator^(const OLVector3<T>& a, const OLVector3<T>& b) { return (a.x * b.x) + (a.y * b.y) + (a.z * b.z); }
 template<typename T>
-inline OLVector3<T> operator%(const OLVector3<T>& a, const OLVector3<T>& b) { return OLVector3{ (a.y * b.z) - (a.z * b.y), (a.z * b.x) - (a.x * b.z), (a.x * b.y) - (a.y * b.x) }; }
+inline OLVector3<T> operator%(const OLVector3<T>& a, const OLVector3<T>& b) { return OLVector3<T>{ (a.y * b.z) - (a.z * b.y), (a.z * b.x) - (a.x * b.z), (a.x * b.y) - (a.y * b.x) }; }
 
 template<typename T>
 inline T sq_mag(const OLVector3<T>& a) { return a ^ a; }
