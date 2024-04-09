@@ -11,7 +11,7 @@
 
 using namespace std;
 
-#define DOWNSCALE 4
+#define DOWNSCALE 2
 
 int main()
 {
@@ -21,9 +21,10 @@ int main()
     Image img = LoadImage("demo.png");
 
     unsigned char* image_data = (unsigned char*)img.data;
-    unsigned int filter = 4;
+    unsigned int filter = 2;
     while (!WindowShouldClose())
     {
+        cout << "filter " << filter << endl;
         BeginDrawing();
         ClearBackground(BLACK);
         for (int y = 0; y < GetScreenHeight(); y++)
@@ -36,7 +37,7 @@ int main()
                 Color col = Color{ image_data[image_data_offset],image_data[image_data_offset + 1],image_data[image_data_offset + 2],255 };
 
                 float magnitude = ((0.2126 * col.r) + (0.7152 * col.g) + (0.0722 * col.b)) / 255.0f;
-                unsigned char value = 255 * orderedDitherFloat(magnitude, 16, x / DOWNSCALE, y / DOWNSCALE, 4);
+                unsigned char value = 255 * orderedDitherFloat(magnitude, 32, x / DOWNSCALE, y / DOWNSCALE, 8);
                 col.r = value;
                 col.g = value;
                 col.b = value;
@@ -46,9 +47,9 @@ int main()
         }
         
         EndDrawing();
-        if (filter == 4) filter = 2;
-        else if (filter == 2) filter = 8;
-        else filter = 4;
+        if (filter == 4) filter = 8;
+        else if (filter == 2) filter = 4;
+        else filter = 2;
     }
 
     return 0;
