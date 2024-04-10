@@ -14,6 +14,30 @@ struct OLVector3f; struct OLPalette;
 float orderedFilterThreshold(int x, int y, unsigned int filter_size = 4);
 
 /**
+ * sample the filter value from a custom filter provided. the filter should be an 
+ * array of length `filter_size * filter_size` of unsigned integers ranging from 
+ * zero to `(filter_size * filter_size) - 1` inclusive
+ * 
+ * @param x horizontal offset within the filter, does not need to be limited to the filter size
+ * @param y vertical offset within the filter, does not need to be limited to the filter size
+ * @param filter_size width and height of the filter
+ * 
+ * @returns float in 0-1 range
+ * **/
+float orderedFilterThresholdCustom(int x, int y, unsigned int filter_size, unsigned int* filter);
+
+/**
+ * construct a filter using the threshold map algorithm to generate a Bayer matrix for 
+ * ordered dithering, which can be passed into `orderedFilterThresholdCustom`
+ * 
+ * @param filter_size width and height of the filter. must be a power of two
+ * 
+ * @returns pointer to newly allocated array of size `filter_size * filter_size`, or
+ * NULL if the `filter_size` was not a power of two
+ * **/
+unsigned int* generateOrderedFilter(unsigned int filter_size);
+
+/**
  * dither a single floating point value on a given pixel offset. `f` is dithered between the two
  * closest subdivisions, according to a given filter pattern and offset. supported filter sizes are 2, 4, 8, 16
  * 

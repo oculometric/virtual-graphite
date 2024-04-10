@@ -20,6 +20,8 @@ int main()
 
     Image img = LoadImage("demo.png");
 
+    unsigned int* kernel = generateOrderedFilter(32);
+
     unsigned char* image_data = (unsigned char*)img.data;
     unsigned int filter = 2;
     while (!WindowShouldClose())
