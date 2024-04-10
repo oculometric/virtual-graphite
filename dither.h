@@ -15,7 +15,7 @@ float orderedFilterThreshold(int x, int y, unsigned int filter_size = 4);
 
 /**
  * dither a single floating point value on a given pixel offset. `f` is dithered between the two
- * closest subdivisions, according to a given filter pattern and offset. supported filter sizes are 2, 4, 8
+ * closest subdivisions, according to a given filter pattern and offset. supported filter sizes are 2, 4, 8, 16
  * 
  * @param f float to be dithered, in 0-1 range
  * @param subdivisions number of discrete possible values in the output

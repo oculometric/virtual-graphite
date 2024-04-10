@@ -37,7 +37,7 @@ int main()
                 Color col = Color{ image_data[image_data_offset],image_data[image_data_offset + 1],image_data[image_data_offset + 2],255 };
 
                 float magnitude = ((0.2126 * col.r) + (0.7152 * col.g) + (0.0722 * col.b)) / 255.0f;
-                unsigned char value = 255 * orderedDitherFloat(magnitude, 32, x / DOWNSCALE, y / DOWNSCALE, 8);
+                unsigned char value = 255 * orderedDitherFloat(magnitude, 32, x / DOWNSCALE, y / DOWNSCALE, filter);
                 col.r = value;
                 col.g = value;
                 col.b = value;
@@ -49,6 +49,7 @@ int main()
         EndDrawing();
         if (filter == 4) filter = 8;
         else if (filter == 2) filter = 4;
+        else if (filter == 8) filter = 16;
         else filter = 2;
     }
 
