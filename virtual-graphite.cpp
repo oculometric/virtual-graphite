@@ -7,122 +7,53 @@
 #include <vector>
 #include <iostream>
 
+#include "dither.h"
+
 using namespace std;
 
-inline float distance(const Vector2& a, const Vector2& b)
-{
-    return ((a.x - b.x) * (a.x - b.x)) + ((a.y - b.y) * (a.y - b.y));
-}
-
-inline bool operator<(const Vector2& a, const Vector2& b)
-{
-    if (a.x < b.x)
-        return true;
-    else if (a.x > b.x)
-        return false;
-    else
-    {
-        if (a.y < b.y) return true;
-        else return false;
-    }
-}
-
-#define NUM_CANDIDATES 5
-const float RAND_DIVISOR = 1.0f / RAND_MAX;
-
-inline float randf()
-{
-    return ((float)(rand() << 1) * RAND_DIVISOR) - 1.0f;
-}
+#define DOWNSCALE 2
 
 int main()
 {
     InitWindow(1024, 1024, "vg");
-    SetTargetFPS(60);
-    
-    int num_points = 100;
+    SetTargetFPS(1);
+
+    Image img = LoadImage("demo.png");
+
+    unsigned int* kernel = generateOrderedFilter(32);
+
+    unsigned char* image_data = (unsigned char*)img.data;
+    unsigned int filter = 2;
     while (!WindowShouldClose())
     {
-        cout << "generating points" << endl;
-        srand(0);
-        vector<Vector2> points;
-        points.push_back(Vector2{ 0,0 });
-        for (int p = 1; p < num_points; p++)
-        {
-            Vector2 best_candidate;
-            float best_candidate_distance = -1;
-            for (int c = 0; c < NUM_CANDIDATES; c++)
-            {
-                Vector2 candidate = Vector2{ randf(), randf() };
-                float closest_existing_distance = 2.0f;
-                for (Vector2 t : points)
-                {
-                    float dif = t.x - candidate.x;
-                    float x_dif = dif * dif;
-                    if (x_dif > closest_existing_distance) continue;
-                    dif = t.y - candidate.y;
-                    float y_dif = dif * dif;
-                    if (y_dif > closest_existing_distance) continue;
-
-                    float dist = x_dif + y_dif;
-                    if (dist < closest_existing_distance)
-                    {
-                        closest_existing_distance = dist;
-                    }
-                }
-                if (closest_existing_distance > best_candidate_distance)
-                {
-                    best_candidate = candidate;
-                    best_candidate_distance = closest_existing_distance;
-                }
-            }
-            points.push_back(best_candidate);
-        }
-
+        cout << "filter " << filter << endl;
         BeginDrawing();
         ClearBackground(BLACK);
-        float f_x = -1.0f;
-        float f_y = -1.0f;
-        cout << "drawing!" << endl;
         for (int y = 0; y < GetScreenHeight(); y++)
         {
-            f_x = -1.0f;
             for (int x = 0; x < GetScreenWidth(); x++)
             {
-                //cout << f_x << " : " << x << endl;
-                float value = 0.0f;
-                for (Vector2 p : points)
-                {
-                    value = max(1.0f - (distance(Vector2{ f_x, f_y }, p) * 50.0f), value);
-                }
-                unsigned char val = (unsigned char)(min(value, 1.0f) * 255);
-                DrawPixel(x, y, Color{ val, val, val, 255 });
-                f_x += 2.0f / GetScreenWidth();
+                int i_x = (x - (x % DOWNSCALE)) * (img.width / 1024);
+                int i_y = (y - (y % DOWNSCALE)) * (img.height / 1024);
+                int image_data_offset = ((i_y * img.width) + i_x) * 3;
+                Color col = Color{ image_data[image_data_offset],image_data[image_data_offset + 1],image_data[image_data_offset + 2],255 };
+
+                float magnitude = ((0.2126 * col.r) + (0.7152 * col.g) + (0.0722 * col.b)) / 255.0f;
+                unsigned char value = 255 * orderedDitherFloat(magnitude, 32, x / DOWNSCALE, y / DOWNSCALE, filter);
+                col.r = value;
+                col.g = value;
+                col.b = value;
+
+                DrawPixel(x, y, col);
             }
-            f_y += 2.0f / GetScreenHeight();
         }
-
-        for (Vector2 p : points)
-        {
-            DrawPixel((p.x + 1.0f) * (GetScreenWidth() / 2.0f), (p.y + 1.0f) * (GetScreenHeight() / 2.0f), WHITE);
-        }
+        
         EndDrawing();
-
-        cout << "done" << endl;
-
-        num_points += num_points/2;
+        if (filter == 4) filter = 8;
+        else if (filter == 2) filter = 4;
+        else if (filter == 8) filter = 16;
+        else filter = 2;
     }
 
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

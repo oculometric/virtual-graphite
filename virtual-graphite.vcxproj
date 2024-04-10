@@ -130,10 +130,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dither.cpp" />
     <ClCompile Include="virtual-graphite.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="raylib-5.0_win64_msvc16\lib\raylibdll.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dither.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
