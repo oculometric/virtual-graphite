@@ -1,2 +1,5 @@
-
-/.vs/virtual-graphite/v17
+.vs
+.vscode
+.dist
+x64
+x86
