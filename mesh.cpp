@@ -227,6 +227,19 @@ bool OLMesh::readFromFile(const char* filename)
     updateSecondaryData();
 }
 
+void OLMesh::applyTransform(const OLMatrix4f& transform)
+{
+    if (!vertices) return;
+    for (int i = 0; i < num_vertices; i++)
+    {
+        OLVector4f vert{ vertices[i].x, vertices[i].y, vertices[i].z, 1 };
+        vert = transform * vert;
+        vert.x /= vert.w;
+        vert.y /= vert.w;
+        vertices[i] = OLVector3f{ vert.x, vert.y, vert.z };
+    }
+}
+
 OLMesh::~OLMesh()
 {
     deallocateBuffers();
@@ -234,10 +247,10 @@ OLMesh::~OLMesh()
 
 void OLMesh::updateSecondaryData()
 {
-	if (face_normals) delete face_normals;
-	if (edge_vectors) delete edge_vectors;
-	if (edge_dots) delete edge_dots;
-	if (inv_denominators) delete inv_denominators;
+	if (face_normals) delete[] face_normals;
+	if (edge_vectors) delete[] edge_vectors;
+	if (edge_dots) delete[] edge_dots;
+	if (inv_denominators) delete[] inv_denominators;
 
 	size_t num_triangles = num_face_corners / 3;
 
@@ -277,14 +290,14 @@ void OLMesh::updateSecondaryData()
 
 void OLMesh::deallocateBuffers()
 {
-    if (face_corners) { delete face_corners; face_corners = NULL; }
-    if (vertices) { delete vertices; vertices = NULL; }
-    if (texture_coordinates) { delete texture_coordinates; texture_coordinates = NULL; }
-    if (corner_normals) { delete corner_normals; corner_normals = NULL; }
-    if (face_normals) { delete face_normals; face_normals = NULL; }
-    if (edge_vectors) { delete edge_vectors; edge_vectors = NULL; }
-    if (edge_dots) { delete edge_dots; edge_dots = NULL; }
-    if (inv_denominators) { delete inv_denominators; inv_denominators = NULL; }
+    if (face_corners) { delete[] face_corners; face_corners = NULL; }
+    if (vertices) { delete[] vertices; vertices = NULL; }
+    if (texture_coordinates) { delete[] texture_coordinates; texture_coordinates = NULL; }
+    if (corner_normals) { delete[] corner_normals; corner_normals = NULL; }
+    if (face_normals) { delete[] face_normals; face_normals = NULL; }
+    if (edge_vectors) { delete[] edge_vectors; edge_vectors = NULL; }
+    if (edge_dots) { delete[] edge_dots; edge_dots = NULL; }
+    if (inv_denominators) { delete[] inv_denominators; inv_denominators = NULL; }
 }
 
 OLMesh::OLMesh(const char* filename)
@@ -302,4 +315,28 @@ OLMesh::OLMesh(const char* filename)
     num_vertices = 0;
 
     readFromFile(filename);
+}
+
+OLMesh::OLMesh(const OLMesh& other)
+{
+    num_face_corners = other.num_face_corners;
+    num_vertices = other.num_vertices;
+    size_t num_triangles = num_face_corners / 3;
+
+    face_corners = new size_t[num_face_corners];
+    memcpy(face_corners, other.face_corners, num_face_corners * sizeof(size_t));
+    vertices = new OLVector3f[num_vertices];
+    memcpy(vertices, other.vertices, num_face_corners * sizeof(OLVector3f));
+    texture_coordinates = new OLVector2f[num_face_corners];
+    memcpy(texture_coordinates, other.texture_coordinates, num_face_corners * sizeof(OLVector2f));
+    corner_normals = new OLVector3f[num_face_corners];
+    memcpy(corner_normals, other.corner_normals, num_face_corners * sizeof(OLVector3f));
+    face_normals = new OLVector3f[num_triangles];
+    memcpy(face_normals, other.face_normals, num_triangles * sizeof(OLVector3f));
+    edge_vectors = new OLVector3f[num_triangles * 2];
+    memcpy(edge_vectors, other.edge_vectors, num_triangles * 2 * sizeof(OLVector3f));
+    edge_dots = new float[num_triangles * 3];
+    memcpy(edge_dots, other.edge_dots, num_triangles * 3 * sizeof(float));
+    inv_denominators = new float[num_triangles];
+    memcpy(inv_denominators, other.inv_denominators, num_triangles * sizeof(float));
 }

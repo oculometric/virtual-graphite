@@ -1,6 +1,7 @@
 #pragma once
 
-struct OLVector3f; struct OLPalette;
+#include "vector3.h"
+struct OLPalette;
 
 /**
  * get the filter value for a given filter size. the returned value is in the 0-1 range
