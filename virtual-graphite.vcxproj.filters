@@ -18,7 +18,6 @@
     <ClCompile Include="virtual-graphite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-<<<<<<< HEAD
     <ClCompile Include="camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -26,9 +25,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mesh.cpp">
-=======
-    <ClCompile Include="dither.cpp">
->>>>>>> 9e6744b4dc16e2d70b31b7cb93a295f3bb6665a1
+		<Filter>Source Files</Filter>
+	</ClCompile>
+	<ClCompile Include="dither.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +37,6 @@
     </Library>
   </ItemGroup>
   <ItemGroup>
-<<<<<<< HEAD
     <ClInclude Include="mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -58,9 +56,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="object.h">
-=======
-    <ClInclude Include="dither.h">
->>>>>>> 9e6744b4dc16e2d70b31b7cb93a295f3bb6665a1
+		<Filter>Header Files</Filter>
+	</ClInclude>
+	<ClInclude Include="dither.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
