@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="buffer.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="object.cpp" />
@@ -143,6 +144,7 @@
     <Library Include="raylib-5.0_win64_msvc16\lib\raylibdll.lib" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="buffer.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="matrix4.h" />
     <ClInclude Include="mesh.h" />

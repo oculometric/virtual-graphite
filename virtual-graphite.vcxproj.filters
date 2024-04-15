@@ -25,9 +25,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mesh.cpp">
-		<Filter>Source Files</Filter>
-	</ClCompile>
-	<ClCompile Include="dither.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dither.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,9 +59,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="object.h">
-		<Filter>Header Files</Filter>
-	</ClInclude>
-	<ClInclude Include="dither.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dither.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
