@@ -3,6 +3,7 @@
 #include "vector2.h"
 #include "vector3.h"
 #include "matrix4.h"
+#include "buffer.h"
 
 struct OLPointData
 {
@@ -40,6 +41,7 @@ public:
 
 	OLPointData& raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip);
 	OLPointData& closestPoint(const OLVector3f& point);
+	void writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode);
 	bool readFromFile(const char* filename);
 	void applyTransform(const OLMatrix4f& transform);
 

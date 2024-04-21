@@ -10,6 +10,7 @@
 #include "vector2.h"
 #include "mesh.h"
 #include "dither.h"
+#include "buffer.h"
 
 #define DOWNSCALE 2
 #define NUM_CANDIDATES 4
@@ -99,35 +100,41 @@ void pointsGeneratingDemo()
 void depthBufferDemo()
 {
     OLMatrix4f world_to_camera =
-        ~(OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f)
+        OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f)
         *
-            ~OLObject::objectMatrix(OLVector3f{ 0,0,0 }, -OLVector3f OL_UP, OL_BACK, -OLVector3f OL_RIGHT, OLVector3f{ 1,1,1 }));
+        ~OLObject::objectMatrix(OLVector3f{ -2,0,0 }, -OLVector3f OL_UP, OL_BACK, -OLVector3f OL_RIGHT, OLVector3f{ 1,1,1 });
     
     OLMesh demo_mesh("suzanne.obj");
+
+    OLMesh screen_space_mesh (demo_mesh);
+    screen_space_mesh.applyTransform(world_to_camera);
+
+    OLBuffer<float> depth_buffer(1024, 1024);
+    depth_buffer.fill(10.0f);
+    screen_space_mesh.writeDepthBuffer(&depth_buffer, OLDepthWrite::LESS);
     
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()) {
         BeginDrawing();
 
         OLVector4f sceen_space = { -1.0f, 1.0f, 1.0f, 1.0f };
         for (int y = 0; y < GetScreenHeight(); y++)
         {
-            sceen_space.x = -1.0f;
+            //sceen_space.x = -1.0f;
             for (int x = 0; x < GetScreenWidth(); x++)
             {
-                OLVector4f world_space = world_to_camera * sceen_space;
+                float depth = max(min((depth_buffer.access(x, y) - 0.01f) / (10.0f - 0.01f), 1.0f), 0.0f);
+                DrawPixel(x, y, Color{ (unsigned char)(depth * 255), (unsigned char)(depth * 255), (unsigned char)(depth * 255), 255 });
+                /*OLVector4f world_space = world_to_camera * sceen_space;
                 OLVector3f direction = norm(OLVector3f{ world_space.x, world_space.y, world_space.z });
                 OLPointData data = demo_mesh.raycast(OLVector3f{ -2,0,0 }, direction, true, 0.01f, 10.0f);
                 float remapped_depth = max(min((data.depth - 0.01f) / (10.0f - 0.01f), 1.0f), 0.0f);
                 DrawPixel(x, y, Color{ (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), 255 });
-                sceen_space.x += 2.0f / GetScreenWidth();
+                sceen_space.x += 2.0f / GetScreenWidth();*/
             }
-            sceen_space.y -= 2.0f / GetScreenHeight();
+            //sceen_space.y -= 2.0f / GetScreenHeight();
         }
 
         EndDrawing();
-
-        cout << "frame rendered" << endl;
     }
 }
 
@@ -176,7 +183,7 @@ int main()
     InitWindow(1024, 1024, "vg");
     SetTargetFPS(60);
     
-    orderedDitheringDemo();
+    depthBufferDemo();
 
     return 0;
 }

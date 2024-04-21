@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <math.h>
 
 struct OLFaceCornerInfo { uint32_t vert; uint32_t uv; uint32_t vn; };
 
@@ -58,6 +59,75 @@ OLPointData& OLMesh::raycast(const OLVector3f& origin, const OLVector3f& directi
     }
 
     return hit_data;
+}
+
+void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
+{
+    if (mode == OLDepthWrite::NEVER) return;
+    OLVector2f pixel_offset{ 2.0f / (float)buffer->getWidth(), 2.0f / (float)buffer->getHeight() };
+
+    for (int fc = 0; fc < num_face_corners - 2; fc += 3)
+    {
+        OLVector3f va = vertices[face_corners[fc + 0]];
+        OLVector3f vb = vertices[face_corners[fc + 1]];
+        OLVector3f vc = vertices[face_corners[fc + 2]];
+
+        OLVector2f min_pos = { fmax(fmin(fmin(va.x, vb.x), vc.x), -1.0f), fmax(fmin(fmin(va.y, vb.y), vc.y), -1.0f) };
+        OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x),vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
+        OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((min_pos.y + 1.0f) / pixel_offset.y) };
+        OLVector2f pos = min_pos;
+        OLVector2u pixel = min_pixel;
+        unsigned int pixel_index = pixel.x + (pixel.y * buffer->getWidth());
+        OLVector2f vab{ vb.x - va.x, vb.y - va.y };
+        OLVector2f vac{ vc.x - va.x, vc.y - va.y };
+        float dabab = vab ^ vab;
+        float dabac = vab ^ vac;
+        float dacac = vac ^ vac;
+        float inv_denom = 1.0f / ((dabab * dacac) - (dabac * dabac));
+        while (pos.y <= max_pos.y)
+        {
+            pos.x = min_pos.x;
+            pixel.x = min_pixel.x;
+            while (pos.x <= max_pos.x)
+            {
+                pos.x += pixel_offset.x;
+                OLVector2f vap{ pos.x - va.x, pos.y - vb.y };
+                float da = vap ^ vab;
+                float db = vap ^ vac;
+                float v = ((dacac * da) - (dabac * db)) * inv_denom;
+                if (v >= 0 && v <= 1)
+                {
+                    float w = ((dabab * db) - (dabac * da)) * inv_denom;
+                    if (w >= 0 && w <= 1)
+                    {
+                        float u = 1 - v - w;
+                        if (u >= 0 && u <= 1)
+                        {
+                            float actual_depth = (v * va.z) + (u * vb.z) + (w * vc.z);
+                            float current_depth = buffer->unsafeAccess(pixel_index);
+                            switch (mode)
+                            {
+                            case OLDepthWrite::NEVER: break;
+                            case OLDepthWrite::LESS: if (actual_depth < current_depth) current_depth = actual_depth; break;
+                            case OLDepthWrite::LESSEQUAL: if (actual_depth <= current_depth) current_depth = actual_depth; break;
+                            case OLDepthWrite::EQUAL: if (actual_depth == current_depth) current_depth = actual_depth; break;
+                            case OLDepthWrite::GREATEREQUAL: if (actual_depth >= current_depth) current_depth = actual_depth; break;
+                            case OLDepthWrite::GREATER: if (actual_depth > current_depth) current_depth = actual_depth; break;
+                            case OLDepthWrite::ALWAYS: current_depth = actual_depth; break;
+
+                            }
+                            buffer->unsafeAccess(pixel_index) = current_depth;
+                        }
+                    }
+                }
+
+                pos.x += pixel_offset.x;
+                pixel.x++;
+            }
+            pos.y += pixel_offset.y;
+            pixel.y++;
+        }
+    }
 }
 
 bool OLMesh::readFromFile(const char* filename)
@@ -326,7 +396,7 @@ OLMesh::OLMesh(const OLMesh& other)
     face_corners = new size_t[num_face_corners];
     memcpy(face_corners, other.face_corners, num_face_corners * sizeof(size_t));
     vertices = new OLVector3f[num_vertices];
-    memcpy(vertices, other.vertices, num_face_corners * sizeof(OLVector3f));
+    memcpy(vertices, other.vertices, num_vertices * sizeof(OLVector3f));
     texture_coordinates = new OLVector2f[num_face_corners];
     memcpy(texture_coordinates, other.texture_coordinates, num_face_corners * sizeof(OLVector2f));
     corner_normals = new OLVector3f[num_face_corners];
