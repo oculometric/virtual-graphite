@@ -109,13 +109,16 @@ void depthBufferDemo()
     OLMatrix4f model_to_world;
     float rotation_z = 0.0f;
 
-    Image screen_img = GenImageColor(1024, 1024, WHITE);
-
+    Image screen_img;
     screen_img.width = 1024;
     screen_img.height = 1024;
     screen_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R32;
     screen_img.mipmaps = 1;
     screen_img.data = depth_buffer.getBufferAddress();
+
+    BeginDrawing();
+    Texture2D screen_tex = LoadTextureFromImage(screen_img);
+    EndDrawing();
 
     while (!WindowShouldClose()) {
         model_to_world = OLObject::objectMatrix(OL_ZERO, OLVector3f{ cos(rotation_z), -sin(rotation_z),0 }, OLVector3f{ sin(rotation_z), cos(rotation_z), 0 }, OL_BACK, OL_ONE);
@@ -127,16 +130,20 @@ void depthBufferDemo()
         for (unsigned int i = 0; i < depth_buffer.getLength(); i++) depth_buffer.unsafeAccess(i) /= 10.0f;
 
         BeginDrawing();
-        
-        Texture2D screen_tex = LoadTextureFromImage(screen_img);
-        DrawTexture(screen_tex, 0, 0, WHITE);
-        DrawFPS(0, 0);
+
         UnloadTexture(screen_tex);
+        screen_tex = LoadTextureFromImage(screen_img);
+        DrawCircle(100, 100, 24, RED);
+        DrawTexture(screen_tex, 0, 0, WHITE);
+
+        DrawFPS(0, 0);
 
         EndDrawing();
         
         rotation_z += (2.0f / 180.0f) * PI;
     }
+    UnloadTexture(screen_tex);
+
 }
 
 void orderedDitheringDemo()
