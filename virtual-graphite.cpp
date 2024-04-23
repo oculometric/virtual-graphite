@@ -2,7 +2,7 @@
 //
 
 #include <iostream>
-#include "raylib.h"
+#include "raylib-5.0_win64_msvc16/include/raylib.h"
 
 #include <vector>
 #include <iostream>
@@ -27,7 +27,7 @@ void pointsGeneratingDemo()
     int num_points = 100;
     while (!WindowShouldClose())
     {
-        cout << "generating points" << endl;
+        std::cout << "generating points" << endl;
         srand(0);
         vector<Vector2> points;
         points.push_back(Vector2{ 0,0 });
@@ -67,7 +67,7 @@ void pointsGeneratingDemo()
         ClearBackground(BLACK);
         float f_x = -1.0f;
         float f_y = -1.0f;
-        cout << "drawing!" << endl;
+        std::cout << "drawing!" << endl;
         for (int y = 0; y < GetScreenHeight(); y++)
         {
             f_x = -1.0f;
@@ -91,7 +91,7 @@ void pointsGeneratingDemo()
         }
         EndDrawing();
 
-        cout << "done" << endl;
+        std::cout << "done" << endl;
 
         num_points += num_points/2;
     }
@@ -99,42 +99,43 @@ void pointsGeneratingDemo()
 
 void depthBufferDemo()
 {
-    OLMatrix4f world_to_camera =
-        OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f)
-        *
-        ~OLObject::objectMatrix(OLVector3f{ -2,0,0 }, -OLVector3f OL_UP, OL_BACK, -OLVector3f OL_RIGHT, OLVector3f{ 1,1,1 });
-    
+    OLMatrix4f camera_to_view = OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f);
+    OLMatrix4f world_to_camera = ~OLObject::objectMatrix(OLVector3f{ -2,0,2 }, -OLVector3f OL_UP, norm(OLVector3f{ 1,0,1 }), norm(OLVector3f{ -1,0,1 }), OLVector3f{ 1,1,1 });
+    OLMatrix4f world_to_view = camera_to_view * world_to_camera;
     OLMesh demo_mesh("suzanne.obj");
 
-    OLMesh screen_space_mesh (demo_mesh);
-    screen_space_mesh.applyTransform(world_to_camera);
-
     OLBuffer<float> depth_buffer(1024, 1024);
-    depth_buffer.fill(10.0f);
-    screen_space_mesh.writeDepthBuffer(&depth_buffer, OLDepthWrite::LESS);
-    
-    while (!WindowShouldClose()) {
-        BeginDrawing();
 
-        OLVector4f sceen_space = { -1.0f, 1.0f, 1.0f, 1.0f };
-        for (int y = 0; y < GetScreenHeight(); y++)
-        {
-            //sceen_space.x = -1.0f;
-            for (int x = 0; x < GetScreenWidth(); x++)
-            {
-                float depth = max(min((depth_buffer.access(x, y) - 0.01f) / (10.0f - 0.01f), 1.0f), 0.0f);
-                DrawPixel(x, y, Color{ (unsigned char)(depth * 255), (unsigned char)(depth * 255), (unsigned char)(depth * 255), 255 });
-                /*OLVector4f world_space = world_to_camera * sceen_space;
-                OLVector3f direction = norm(OLVector3f{ world_space.x, world_space.y, world_space.z });
-                OLPointData data = demo_mesh.raycast(OLVector3f{ -2,0,0 }, direction, true, 0.01f, 10.0f);
-                float remapped_depth = max(min((data.depth - 0.01f) / (10.0f - 0.01f), 1.0f), 0.0f);
-                DrawPixel(x, y, Color{ (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), (unsigned char)(remapped_depth * 255), 255 });
-                sceen_space.x += 2.0f / GetScreenWidth();*/
-            }
-            //sceen_space.y -= 2.0f / GetScreenHeight();
-        }
+    OLMatrix4f model_to_world;
+    float rotation_z = 0.0f;
+
+    Image screen_img = GenImageColor(1024, 1024, WHITE);
+
+    screen_img.width = 1024;
+    screen_img.height = 1024;
+    screen_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R32;
+    screen_img.mipmaps = 1;
+    screen_img.data = depth_buffer.getBufferAddress();
+
+    while (!WindowShouldClose()) {
+        model_to_world = OLObject::objectMatrix(OL_ZERO, OLVector3f{ cos(rotation_z), -sin(rotation_z),0 }, OLVector3f{ sin(rotation_z), cos(rotation_z), 0 }, OL_BACK, OL_ONE);
+        OLMatrix4f model_to_view = world_to_view * model_to_world;
+        OLMesh screen_space_mesh(demo_mesh);
+        screen_space_mesh.applyTransform(model_to_view);
+        depth_buffer.fill(10.0f);
+        screen_space_mesh.writeDepthBuffer(&depth_buffer, OLDepthWrite::LESS);
+        for (unsigned int i = 0; i < depth_buffer.getLength(); i++) depth_buffer.unsafeAccess(i) /= 10.0f;
+
+        BeginDrawing();
+        
+        Texture2D screen_tex = LoadTextureFromImage(screen_img);
+        DrawTexture(screen_tex, 0, 0, WHITE);
+        DrawFPS(0, 0);
+        UnloadTexture(screen_tex);
 
         EndDrawing();
+        
+        rotation_z += (2.0f / 180.0f) * PI;
     }
 }
 
@@ -148,7 +149,7 @@ void orderedDitheringDemo()
     unsigned int filter = 2;
     while (!WindowShouldClose())
     {
-        cout << "filter " << filter << endl;
+        std::cout << "filter " << filter << endl;
         BeginDrawing();
         ClearBackground(BLACK);
         for (int y = 0; y < GetScreenHeight(); y++)

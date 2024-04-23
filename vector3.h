@@ -6,6 +6,8 @@
 #define OL_RIGHT { 1,0,0 }
 #define OL_UP { 0,1,0 }
 #define OL_BACK { 0,0,1 }
+#define OL_ONE { 1,1,1 }
+#define OL_ZERO { 0,0,0 }
 
 template <typename T> struct OLVector3;
 

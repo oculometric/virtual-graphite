@@ -63,6 +63,7 @@ public:
 	inline unsigned int getWidth() { return width; }
 	inline unsigned int getHeight() { return height; }
 	inline unsigned int getLength() { return length; }
+	inline T* getBufferAddress() { return address; }
 
 	~OLBuffer()
 	{

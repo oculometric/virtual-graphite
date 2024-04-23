@@ -21,7 +21,7 @@ OLFaceCornerInfo splitFaceCorner(std::string str)
     return fci;
 }
 
-OLPointData& OLMesh::raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip)
+OLPointData OLMesh::raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip)
 {
     OLPointData hit_data{ {}, far_clip, {}, {} };
 
@@ -68,13 +68,14 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
 
     for (int fc = 0; fc < num_face_corners - 2; fc += 3)
     {
+        if ((face_normals[fc / 3] ^ OLVector3f OL_UP) < 0) continue;
         OLVector3f va = vertices[face_corners[fc + 0]];
         OLVector3f vb = vertices[face_corners[fc + 1]];
         OLVector3f vc = vertices[face_corners[fc + 2]];
 
         OLVector2f min_pos = { fmax(fmin(fmin(va.x, vb.x), vc.x), -1.0f), fmax(fmin(fmin(va.y, vb.y), vc.y), -1.0f) };
         OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x),vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
-        OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((min_pos.y + 1.0f) / pixel_offset.y) };
+        OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - min_pos.y) / pixel_offset.y) };
         OLVector2f pos = min_pos;
         OLVector2u pixel = min_pixel;
         unsigned int pixel_index = pixel.x + (pixel.y * buffer->getWidth());
@@ -122,10 +123,14 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
                 }
 
                 pos.x += pixel_offset.x;
+                pixel_index++;
                 pixel.x++;
             }
             pos.y += pixel_offset.y;
-            pixel.y++;
+            pixel_index -= pixel.x;
+            pixel_index -= buffer->getWidth();
+            pixel_index += min_pixel.x;
+            pixel.y--;
         }
     }
 }
@@ -295,6 +300,8 @@ bool OLMesh::readFromFile(const char* filename)
     if (found_vnorms > 0) delete[] vns_temp;
 
     updateSecondaryData();
+
+    return true;
 }
 
 void OLMesh::applyTransform(const OLMatrix4f& transform)
