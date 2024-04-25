@@ -99,15 +99,19 @@ void pointsGeneratingDemo()
 
 void depthBufferDemo()
 {
-    OLMatrix4f camera_to_view = OLCamera::projectionMatrix(0.01f, 10.0f, 90.0f, 1.0f);
+    OLMatrix4f camera_to_view = OLCamera::projectionMatrix(0.01f, 10.0f, 70.0f, 1.0f);
     OLMatrix4f world_to_camera = ~OLObject::objectMatrix(OLVector3f{ -2,0,2 }, -OLVector3f OL_UP, norm(OLVector3f{ 1,0,1 }), norm(OLVector3f{ -1,0,1 }), OLVector3f{ 1,1,1 });
     OLMatrix4f world_to_view = camera_to_view * world_to_camera;
-    OLMesh demo_mesh("suzanne.obj");
+    OLMesh demo_mesh("quad.obj");
 
     OLBuffer<float> depth_buffer(1024, 1024);
+    OLBuffer<unsigned char> index_buffer(1024, 1024);
+    OLBuffer<OLVector4<unsigned char>> bary_buffer(1024, 1024);
 
     OLMatrix4f model_to_world;
-    float rotation_z = 0.0f;
+    float rotation_z = 45.0f;
+    float pos_z = 0.0f;
+    float dir = 0.01f;
 
     Image screen_img;
     screen_img.width = 1024;
@@ -116,31 +120,49 @@ void depthBufferDemo()
     screen_img.mipmaps = 1;
     screen_img.data = depth_buffer.getBufferAddress();
 
+    Image index_img;
+    index_img.width = 1024;
+    index_img.height = 1024;
+    index_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_GRAYSCALE;
+    index_img.mipmaps = 1;
+    index_img.data = index_buffer.getBufferAddress();
+
+    Image bary_img;
+    bary_img.width = 1024;
+    bary_img.height = 1024;
+    bary_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
+    bary_img.mipmaps = 1;
+    bary_img.data = bary_buffer.getBufferAddress();
+
     BeginDrawing();
     Texture2D screen_tex = LoadTextureFromImage(screen_img);
     EndDrawing();
-
+    SetTraceLogLevel(TraceLogLevel::LOG_ERROR);
+    
     while (!WindowShouldClose()) {
-        model_to_world = OLObject::objectMatrix(OL_ZERO, OLVector3f{ cos(rotation_z), -sin(rotation_z),0 }, OLVector3f{ sin(rotation_z), cos(rotation_z), 0 }, OL_BACK, OL_ONE);
+        model_to_world = OLObject::objectMatrix(OLVector3f{ 0,0,pos_z }, OLVector3f{ cos(rotation_z), -sin(rotation_z),0 }, OLVector3f{ sin(rotation_z), cos(rotation_z), 0 }, OL_BACK, OL_ONE);
         OLMatrix4f model_to_view = world_to_view * model_to_world;
         OLMesh screen_space_mesh(demo_mesh);
         screen_space_mesh.applyTransform(model_to_view);
         depth_buffer.fill(10.0f);
-        screen_space_mesh.writeDepthBuffer(&depth_buffer, OLDepthWrite::LESS);
+        index_buffer.fill(255);
+        bary_buffer.fill(OLVector4<unsigned char>{ 0,0,0,255 });
+        screen_space_mesh.drawToBuffers(&depth_buffer, &index_buffer, &bary_buffer, OLDepthWrite::LESS);
         for (unsigned int i = 0; i < depth_buffer.getLength(); i++) depth_buffer.unsafeAccess(i) /= 10.0f;
 
         BeginDrawing();
 
         UnloadTexture(screen_tex);
-        screen_tex = LoadTextureFromImage(screen_img);
-        DrawCircle(100, 100, 24, RED);
+        screen_tex = LoadTextureFromImage(bary_img);
         DrawTexture(screen_tex, 0, 0, WHITE);
 
         DrawFPS(0, 0);
 
         EndDrawing();
-        
-        rotation_z += (2.0f / 180.0f) * PI;
+        //pos_z += dir;
+        if (pos_z > 0.5f) dir = -0.01f;
+        if (pos_z < -0.5f) dir = 0.01f;
+        rotation_z += (1.0f / 180.0f) * PI;
     }
     UnloadTexture(screen_tex);
 

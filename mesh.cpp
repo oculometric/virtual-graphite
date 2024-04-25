@@ -61,24 +61,32 @@ OLPointData OLMesh::raycast(const OLVector3f& origin, const OLVector3f& directio
     return hit_data;
 }
 
-void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
+void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLDepthWrite mode)
 {
     if (mode == OLDepthWrite::NEVER) return;
-    OLVector2f pixel_offset{ 2.0f / (float)buffer->getWidth(), 2.0f / (float)buffer->getHeight() };
+    OLVector2f pixel_offset{ 2.0f / (float)depth_buffer->getWidth(), 2.0f / (float)depth_buffer->getHeight() };
 
     for (int fc = 0; fc < num_face_corners - 2; fc += 3)
     {
-        if ((face_normals[fc / 3] ^ OLVector3f OL_UP) < 0) continue;
+        //if ((face_normals[fc / 3] ^ OLVector3f OL_UP) < 0) continue;
         OLVector3f va = vertices[face_corners[fc + 0]];
         OLVector3f vb = vertices[face_corners[fc + 1]];
         OLVector3f vc = vertices[face_corners[fc + 2]];
 
+        bary_buffer->access((unsigned int)((va.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - va.y) / pixel_offset.y)).x = 255;
+        bary_buffer->access((unsigned int)((vb.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - vb.y) / pixel_offset.y)).x = 255;
+        bary_buffer->access((unsigned int)((vc.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - vc.y) / pixel_offset.y)).x = 255;
+        //continue; // stop here for now
+       
         OLVector2f min_pos = { fmax(fmin(fmin(va.x, vb.x), vc.x), -1.0f), fmax(fmin(fmin(va.y, vb.y), vc.y), -1.0f) };
-        OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x),vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
+        OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x), vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
         OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - min_pos.y) / pixel_offset.y) };
+        bary_buffer->access(min_pixel.x, min_pixel.y).y = 255;
+        bary_buffer->access((unsigned int)((max_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - max_pos.y) / pixel_offset.y)).z = 255;
+        continue;
         OLVector2f pos = min_pos;
         OLVector2u pixel = min_pixel;
-        unsigned int pixel_index = pixel.x + (pixel.y * buffer->getWidth());
+        unsigned int pixel_index = pixel.x + (pixel.y * depth_buffer->getWidth());
         OLVector2f vab{ vb.x - va.x, vb.y - va.y };
         OLVector2f vac{ vc.x - va.x, vc.y - va.y };
         float dabab = vab ^ vab;
@@ -92,7 +100,7 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
             while (pos.x <= max_pos.x)
             {
                 pos.x += pixel_offset.x;
-                OLVector2f vap{ pos.x - va.x, pos.y - vb.y };
+                OLVector2f vap{ pos.x - va.x, pos.y - va.y };
                 float da = vap ^ vab;
                 float db = vap ^ vac;
                 float v = ((dacac * da) - (dabac * db)) * inv_denom;
@@ -104,8 +112,8 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
                         float u = 1 - v - w;
                         if (u >= 0 && u <= 1)
                         {
-                            float actual_depth = (v * va.z) + (u * vb.z) + (w * vc.z);
-                            float current_depth = buffer->unsafeAccess(pixel_index);
+                            float actual_depth = (v * va.z) + (w * vb.z) + (u * vc.z);
+                            float current_depth = depth_buffer->unsafeAccess(pixel.x, pixel.y);
                             switch (mode)
                             {
                             case OLDepthWrite::NEVER: break;
@@ -117,7 +125,12 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
                             case OLDepthWrite::ALWAYS: current_depth = actual_depth; break;
 
                             }
-                            buffer->unsafeAccess(pixel_index) = current_depth;
+                            depth_buffer->unsafeAccess(pixel.x, pixel.y) = current_depth;
+                            if (current_depth == actual_depth)
+                            {
+                                index_buffer->unsafeAccess(pixel.x, pixel.y) = (fc / 3) * 10;
+                                bary_buffer->unsafeAccess(pixel.x, pixel.y) = OLVector4<unsigned char>{ (unsigned char)(v * 255), (unsigned char)(w * 255), (unsigned char)(u * 255), 255 };
+                            }
                         }
                     }
                 }
@@ -128,7 +141,7 @@ void OLMesh::writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode)
             }
             pos.y += pixel_offset.y;
             pixel_index -= pixel.x;
-            pixel_index -= buffer->getWidth();
+            pixel_index -= depth_buffer->getWidth();
             pixel_index += min_pixel.x;
             pixel.y--;
         }

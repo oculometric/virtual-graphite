@@ -40,8 +40,8 @@ public:
 	void operator=(const OLMesh&& other) = delete;
 
 	OLPointData raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip);
+	void drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLDepthWrite mode);
 	OLPointData closestPoint(const OLVector3f& point);
-	void writeDepthBuffer(OLBuffer<float>* buffer, OLDepthWrite mode);
 	bool readFromFile(const char* filename);
 	void applyTransform(const OLMatrix4f& transform);
 
