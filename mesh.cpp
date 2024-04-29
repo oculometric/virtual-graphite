@@ -69,37 +69,39 @@ void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char
     for (int fc = 0; fc < num_face_corners - 2; fc += 3)
     {
         //if ((face_normals[fc / 3] ^ OLVector3f OL_UP) < 0) continue;
+        // 
+        // grab transformed vertex positions
         OLVector3f va = vertices[face_corners[fc + 0]];
         OLVector3f vb = vertices[face_corners[fc + 1]];
         OLVector3f vc = vertices[face_corners[fc + 2]];
 
-        bary_buffer->access((unsigned int)((va.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - va.y) / pixel_offset.y)).x = 255;
-        bary_buffer->access((unsigned int)((vb.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - vb.y) / pixel_offset.y)).x = 255;
-        bary_buffer->access((unsigned int)((vc.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - vc.y) / pixel_offset.y)).x = 255;
-        //continue; // stop here for now
-       
+        // calculate the bounding box of the triangle in NDC
         OLVector2f min_pos = { fmax(fmin(fmin(va.x, vb.x), vc.x), -1.0f), fmax(fmin(fmin(va.y, vb.y), vc.y), -1.0f) };
         OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x), vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
+        // calculate the pixel position of the min and max
         OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - min_pos.y) / pixel_offset.y) };
-        bary_buffer->access(min_pixel.x, min_pixel.y).y = 255;
-        bary_buffer->access((unsigned int)((max_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - max_pos.y) / pixel_offset.y)).z = 255;
-        continue;
+        OLVector2u max_pixel{ (unsigned int)((max_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - max_pos.y) / pixel_offset.y) };
+
+        // start at the minimum position
         OLVector2f pos = min_pos;
         OLVector2u pixel = min_pixel;
+
         unsigned int pixel_index = pixel.x + (pixel.y * depth_buffer->getWidth());
+        
+        // calculate vectors describing the triangle for barycentric coords
         OLVector2f vab{ vb.x - va.x, vb.y - va.y };
         OLVector2f vac{ vc.x - va.x, vc.y - va.y };
         float dabab = vab ^ vab;
         float dabac = vab ^ vac;
         float dacac = vac ^ vac;
         float inv_denom = 1.0f / ((dabab * dacac) - (dabac * dabac));
+        // iterate over pixels
         while (pos.y <= max_pos.y)
         {
             pos.x = min_pos.x;
             pixel.x = min_pixel.x;
             while (pos.x <= max_pos.x)
             {
-                pos.x += pixel_offset.x;
                 OLVector2f vap{ pos.x - va.x, pos.y - va.y };
                 float da = vap ^ vab;
                 float db = vap ^ vac;
@@ -113,7 +115,7 @@ void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char
                         if (u >= 0 && u <= 1)
                         {
                             float actual_depth = (v * va.z) + (w * vb.z) + (u * vc.z);
-                            float current_depth = depth_buffer->unsafeAccess(pixel.x, pixel.y);
+                            float current_depth = depth_buffer->unsafeAccess(pixel_index);
                             switch (mode)
                             {
                             case OLDepthWrite::NEVER: break;
@@ -125,11 +127,11 @@ void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char
                             case OLDepthWrite::ALWAYS: current_depth = actual_depth; break;
 
                             }
-                            depth_buffer->unsafeAccess(pixel.x, pixel.y) = current_depth;
+                            depth_buffer->unsafeAccess(pixel_index) = current_depth;
                             if (current_depth == actual_depth)
                             {
-                                index_buffer->unsafeAccess(pixel.x, pixel.y) = (fc / 3) * 10;
-                                bary_buffer->unsafeAccess(pixel.x, pixel.y) = OLVector4<unsigned char>{ (unsigned char)(v * 255), (unsigned char)(w * 255), (unsigned char)(u * 255), 255 };
+                                index_buffer->unsafeAccess(pixel_index) = (fc / 3) * 10;
+                                bary_buffer->unsafeAccess(pixel_index) = OLVector4<unsigned char>{ (unsigned char)(v * 255), (unsigned char)(w * 255), (unsigned char)(u * 255), 255 };
                             }
                         }
                     }

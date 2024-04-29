@@ -102,7 +102,7 @@ void depthBufferDemo()
     OLMatrix4f camera_to_view = OLCamera::projectionMatrix(0.01f, 10.0f, 70.0f, 1.0f);
     OLMatrix4f world_to_camera = ~OLObject::objectMatrix(OLVector3f{ -2,0,2 }, -OLVector3f OL_UP, norm(OLVector3f{ 1,0,1 }), norm(OLVector3f{ -1,0,1 }), OLVector3f{ 1,1,1 });
     OLMatrix4f world_to_view = camera_to_view * world_to_camera;
-    OLMesh demo_mesh("quad.obj");
+    OLMesh demo_mesh("suzanne.obj");
 
     OLBuffer<float> depth_buffer(1024, 1024);
     OLBuffer<unsigned char> index_buffer(1024, 1024);
@@ -113,12 +113,12 @@ void depthBufferDemo()
     float pos_z = 0.0f;
     float dir = 0.01f;
 
-    Image screen_img;
-    screen_img.width = 1024;
-    screen_img.height = 1024;
-    screen_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R32;
-    screen_img.mipmaps = 1;
-    screen_img.data = depth_buffer.getBufferAddress();
+    Image depth_img;
+    depth_img.width = 1024;
+    depth_img.height = 1024;
+    depth_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R32;
+    depth_img.mipmaps = 1;
+    depth_img.data = depth_buffer.getBufferAddress();
 
     Image index_img;
     index_img.width = 1024;
@@ -135,7 +135,7 @@ void depthBufferDemo()
     bary_img.data = bary_buffer.getBufferAddress();
 
     BeginDrawing();
-    Texture2D screen_tex = LoadTextureFromImage(screen_img);
+    Texture2D screen_tex = LoadTextureFromImage(depth_img);
     EndDrawing();
     SetTraceLogLevel(TraceLogLevel::LOG_ERROR);
     
@@ -153,13 +153,13 @@ void depthBufferDemo()
         BeginDrawing();
 
         UnloadTexture(screen_tex);
-        screen_tex = LoadTextureFromImage(bary_img);
+        screen_tex = LoadTextureFromImage(depth_img);
         DrawTexture(screen_tex, 0, 0, WHITE);
 
         DrawFPS(0, 0);
 
         EndDrawing();
-        //pos_z += dir;
+        pos_z += dir;
         if (pos_z > 0.5f) dir = -0.01f;
         if (pos_z < -0.5f) dir = 0.01f;
         rotation_z += (1.0f / 180.0f) * PI;
