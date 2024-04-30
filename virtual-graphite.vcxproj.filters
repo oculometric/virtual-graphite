@@ -70,5 +70,8 @@
     <ClInclude Include="raylib-5.0_win64_msvc16\include\raylib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="rendering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

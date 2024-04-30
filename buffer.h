@@ -70,14 +70,3 @@ public:
 		delete[] address;
 	}
 };
-
-enum OLDepthWrite
-{
-	NEVER,
-	LESS,
-	LESSEQUAL,
-	EQUAL,
-	GREATEREQUAL,
-	GREATER,
-	ALWAYS,
-};

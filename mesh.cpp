@@ -5,6 +5,10 @@
 #include <string>
 #include <math.h>
 
+#define BARY_THRESHOLD 0.1f
+#define BARY_MIN -BARY_THRESHOLD
+#define BARY_MAX (1.0f + BARY_THRESHOLD)
+
 struct OLFaceCornerInfo { uint32_t vert; uint32_t uv; uint32_t vn; };
 
 OLFaceCornerInfo splitFaceCorner(std::string str)
@@ -61,76 +65,81 @@ OLPointData OLMesh::raycast(const OLVector3f& origin, const OLVector3f& directio
     return hit_data;
 }
 
-void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLDepthWrite mode)
+void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<size_t>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLRenderConfig* render_config)
 {
-    if (mode == OLDepthWrite::NEVER) return;
+    if (render_config->depth_mode == OLDepthWrite::NEVER) return;
     OLVector2f pixel_offset{ 2.0f / (float)depth_buffer->getWidth(), 2.0f / (float)depth_buffer->getHeight() };
 
     for (int fc = 0; fc < num_face_corners - 2; fc += 3)
     {
-        //if ((face_normals[fc / 3] ^ OLVector3f OL_UP) < 0) continue;
-        // 
         // grab transformed vertex positions
         OLVector3f va = vertices[face_corners[fc + 0]];
         OLVector3f vb = vertices[face_corners[fc + 1]];
         OLVector3f vc = vertices[face_corners[fc + 2]];
+        OLVector2f vab{ vb.x - va.x, vb.y - va.y };
+        OLVector2f vac{ vc.x - va.x, vc.y - va.y };
+
+        if (render_config->cull_backfaces)
+        {
+            OLVector3f vab3{ vab.x, vab.y, vb.z - va.z };
+            OLVector3f vac3{ vac.x, vac.y, vc.z - va.z };
+
+            if (((vab3 % vac3) ^ OLVector3f OL_BACK) < 0) continue;
+        }
 
         // calculate the bounding box of the triangle in NDC
         OLVector2f min_pos = { fmax(fmin(fmin(va.x, vb.x), vc.x), -1.0f), fmax(fmin(fmin(va.y, vb.y), vc.y), -1.0f) };
         OLVector2f max_pos = { fmin(fmax(fmax(va.x, vb.x), vc.x), 1.0f), fmin(fmax(fmax(va.y, vb.y), vc.y), 1.0f) };
         // calculate the pixel position of the min and max
         OLVector2u min_pixel{ (unsigned int)((min_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - min_pos.y) / pixel_offset.y) };
-        OLVector2u max_pixel{ (unsigned int)((max_pos.x + 1.0f) / pixel_offset.x), (unsigned int)((1.0f - max_pos.y) / pixel_offset.y) };
 
         // start at the minimum position
         OLVector2f pos = min_pos;
-        OLVector2u pixel = min_pixel;
 
-        unsigned int pixel_index = pixel.x + (pixel.y * depth_buffer->getWidth());
+        unsigned int pixel_index = min_pixel.x + (min_pixel.y * depth_buffer->getWidth());
+        unsigned int row_start = pixel_index;
         
         // calculate vectors describing the triangle for barycentric coords
-        OLVector2f vab{ vb.x - va.x, vb.y - va.y };
-        OLVector2f vac{ vc.x - va.x, vc.y - va.y };
         float dabab = vab ^ vab;
         float dabac = vab ^ vac;
         float dacac = vac ^ vac;
         float inv_denom = 1.0f / ((dabab * dacac) - (dabac * dabac));
+
         // iterate over pixels
         while (pos.y <= max_pos.y)
         {
             pos.x = min_pos.x;
-            pixel.x = min_pixel.x;
             while (pos.x <= max_pos.x)
             {
                 OLVector2f vap{ pos.x - va.x, pos.y - va.y };
                 float da = vap ^ vab;
                 float db = vap ^ vac;
                 float v = ((dacac * da) - (dabac * db)) * inv_denom;
-                if (v >= 0 && v <= 1)
+                if (v >= BARY_MIN && v <= BARY_MAX)
                 {
                     float w = ((dabab * db) - (dabac * da)) * inv_denom;
-                    if (w >= 0 && w <= 1)
+                    if (w >= BARY_MIN && w <= BARY_MAX)
                     {
                         float u = 1 - v - w;
-                        if (u >= 0 && u <= 1)
+                        if (u >= BARY_MIN && u <= BARY_MAX)
                         {
                             float actual_depth = (v * va.z) + (w * vb.z) + (u * vc.z);
                             float current_depth = depth_buffer->unsafeAccess(pixel_index);
-                            switch (mode)
+                            bool write = false;
+                            switch (render_config->depth_mode)
                             {
                             case OLDepthWrite::NEVER: break;
-                            case OLDepthWrite::LESS: if (actual_depth < current_depth) current_depth = actual_depth; break;
-                            case OLDepthWrite::LESSEQUAL: if (actual_depth <= current_depth) current_depth = actual_depth; break;
-                            case OLDepthWrite::EQUAL: if (actual_depth == current_depth) current_depth = actual_depth; break;
-                            case OLDepthWrite::GREATEREQUAL: if (actual_depth >= current_depth) current_depth = actual_depth; break;
-                            case OLDepthWrite::GREATER: if (actual_depth > current_depth) current_depth = actual_depth; break;
-                            case OLDepthWrite::ALWAYS: current_depth = actual_depth; break;
-
+                            case OLDepthWrite::LESS: if (actual_depth < current_depth) write = true; break;
+                            case OLDepthWrite::LESSEQUAL: if (actual_depth <= current_depth) write = true; break;
+                            case OLDepthWrite::EQUAL: if (actual_depth == current_depth) write = true; break;
+                            case OLDepthWrite::GREATEREQUAL: if (actual_depth >= current_depth) write = true; break;
+                            case OLDepthWrite::GREATER: if (actual_depth > current_depth) write = true; break;
+                            case OLDepthWrite::ALWAYS: write = true; break;
                             }
-                            depth_buffer->unsafeAccess(pixel_index) = current_depth;
-                            if (current_depth == actual_depth)
+                            if (write)
                             {
-                                index_buffer->unsafeAccess(pixel_index) = (fc / 3) * 10;
+                                depth_buffer->unsafeAccess(pixel_index) = actual_depth;
+                                index_buffer->unsafeAccess(pixel_index) = fc / 3;
                                 bary_buffer->unsafeAccess(pixel_index) = OLVector4<unsigned char>{ (unsigned char)(v * 255), (unsigned char)(w * 255), (unsigned char)(u * 255), 255 };
                             }
                         }
@@ -139,13 +148,10 @@ void OLMesh::drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char
 
                 pos.x += pixel_offset.x;
                 pixel_index++;
-                pixel.x++;
             }
             pos.y += pixel_offset.y;
-            pixel_index -= pixel.x;
-            pixel_index -= depth_buffer->getWidth();
-            pixel_index += min_pixel.x;
-            pixel.y--;
+            row_start -= depth_buffer->getWidth();
+            pixel_index = row_start;
         }
     }
 }
@@ -159,10 +165,10 @@ bool OLMesh::readFromFile(const char* filename)
     deallocateBuffers();
 
     // prepass to count vertices and triangles
-    uint16_t found_vertices = 0;
-    uint16_t found_triangles = 0;
-    uint16_t found_uvs = 0;
-    uint16_t found_vnorms = 0;
+    size_t found_vertices = 0;
+    size_t found_triangles = 0;
+    size_t found_uvs = 0;
+    size_t found_vnorms = 0;
 
     std::string line;
     while (getline(file, line))
@@ -207,10 +213,10 @@ bool OLMesh::readFromFile(const char* filename)
     file.clear();
     file.seekg(0, std::ios::beg);
 
-    int v_ind = 0;
-    int vt_ind = 0;
-    int vn_ind = 0;
-    int f_ind = 0;
+    size_t v_ind = 0;
+    size_t vt_ind = 0;
+    size_t vn_ind = 0;
+    size_t f_ind = 0;
     std::string type;
     OLVector3f tmp3;
     OLVector2f tmp2;

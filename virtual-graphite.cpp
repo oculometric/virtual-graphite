@@ -100,12 +100,12 @@ void pointsGeneratingDemo()
 void depthBufferDemo()
 {
     OLMatrix4f camera_to_view = OLCamera::projectionMatrix(0.01f, 10.0f, 70.0f, 1.0f);
-    OLMatrix4f world_to_camera = ~OLObject::objectMatrix(OLVector3f{ -2,0,2 }, -OLVector3f OL_UP, norm(OLVector3f{ 1,0,1 }), norm(OLVector3f{ -1,0,1 }), OLVector3f{ 1,1,1 });
+    OLMatrix4f world_to_camera = ~OLObject::objectMatrix(OLVector3f{ -0.5,0,1 }, -OLVector3f OL_UP, norm(OLVector3f{ 1,0,1 }), norm(OLVector3f{ -1,0,1 }), OLVector3f{ 1,1,1 });
     OLMatrix4f world_to_view = camera_to_view * world_to_camera;
-    OLMesh demo_mesh("suzanne.obj");
+    OLMesh demo_mesh("stanford-bunny.obj");
 
     OLBuffer<float> depth_buffer(1024, 1024);
-    OLBuffer<unsigned char> index_buffer(1024, 1024);
+    OLBuffer<size_t> index_buffer(1024, 1024);
     OLBuffer<OLVector4<unsigned char>> bary_buffer(1024, 1024);
 
     OLMatrix4f model_to_world;
@@ -123,7 +123,7 @@ void depthBufferDemo()
     Image index_img;
     index_img.width = 1024;
     index_img.height = 1024;
-    index_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_GRAYSCALE;
+    index_img.format = PixelFormat::PIXELFORMAT_UNCOMPRESSED_R32;
     index_img.mipmaps = 1;
     index_img.data = index_buffer.getBufferAddress();
 
@@ -138,6 +138,8 @@ void depthBufferDemo()
     Texture2D screen_tex = LoadTextureFromImage(depth_img);
     EndDrawing();
     SetTraceLogLevel(TraceLogLevel::LOG_ERROR);
+
+    OLRenderConfig config{ true, OLDepthWrite::LESS };
     
     while (!WindowShouldClose()) {
         model_to_world = OLObject::objectMatrix(OLVector3f{ 0,0,pos_z }, OLVector3f{ cos(rotation_z), -sin(rotation_z),0 }, OLVector3f{ sin(rotation_z), cos(rotation_z), 0 }, OL_BACK, OL_ONE);
@@ -145,9 +147,15 @@ void depthBufferDemo()
         OLMesh screen_space_mesh(demo_mesh);
         screen_space_mesh.applyTransform(model_to_view);
         depth_buffer.fill(10.0f);
-        index_buffer.fill(255);
+        index_buffer.fill(SIZE_MAX);
         bary_buffer.fill(OLVector4<unsigned char>{ 0,0,0,255 });
-        screen_space_mesh.drawToBuffers(&depth_buffer, &index_buffer, &bary_buffer, OLDepthWrite::LESS);
+        screen_space_mesh.drawToBuffers
+        (
+            &depth_buffer,
+            &index_buffer,
+            &bary_buffer, 
+            &config
+        );
         for (unsigned int i = 0; i < depth_buffer.getLength(); i++) depth_buffer.unsafeAccess(i) /= 10.0f;
 
         BeginDrawing();
@@ -159,10 +167,10 @@ void depthBufferDemo()
         DrawFPS(0, 0);
 
         EndDrawing();
-        pos_z += dir;
+        //pos_z += dir;
         if (pos_z > 0.5f) dir = -0.01f;
         if (pos_z < -0.5f) dir = 0.01f;
-        rotation_z += (1.0f / 180.0f) * PI;
+        rotation_z += (0.6f / 180.0f) * PI;
     }
     UnloadTexture(screen_tex);
 

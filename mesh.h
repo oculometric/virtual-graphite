@@ -4,6 +4,7 @@
 #include "vector3.h"
 #include "matrix4.h"
 #include "buffer.h"
+#include "rendering.h"
 
 struct OLPointData
 {
@@ -40,7 +41,7 @@ public:
 	void operator=(const OLMesh&& other) = delete;
 
 	OLPointData raycast(const OLVector3f& origin, const OLVector3f& direction, bool cull_backfaces, float near_clip, float far_clip);
-	void drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<unsigned char>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLDepthWrite mode);
+	void drawToBuffers(OLBuffer<float>* depth_buffer, OLBuffer<size_t>* index_buffer, OLBuffer<OLVector4<unsigned char>>* bary_buffer, OLRenderConfig* render_config);
 	OLPointData closestPoint(const OLVector3f& point);
 	bool readFromFile(const char* filename);
 	void applyTransform(const OLMatrix4f& transform);
